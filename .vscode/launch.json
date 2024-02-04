@@ -5,25 +5,53 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Java",
             "type": "java",
-            "name": "SnakeApp",
             "request": "launch",
-            "mainClass": "SnakeApp",
-            "projectName": "SnakeFX_b880cf12"
+            "stopOnEntry": true,
+            "jdkPath": "${env:JAVA_HOME}/bin",
+            "cwd": "${fileDirname}",
+            "startupClass": "${fileBasenameNoExtension}",
+            "classpath": [
+                ".",
+                "${fileDirname}"
+            ]
+        },
+        {
+            "name": "Java Console App",
+            "type": "java",
+            "request": "launch",
+            "stopOnEntry": true,
+            "jdkPath": "${env:JAVA_HOME}/bin",
+            "cwd": "${fileDirname}",
+            "startupClass": "${fileBasenameNoExtension}",
+            "classpath": [
+                ".",
+                "${fileDirname}"
+            ],
+            "externalConsole": true
         },
         {
             "type": "java",
             "name": "Current File",
             "request": "launch",
-            "mainClass": "${file}"
+            "mainClass": "${file}",
+            "vmArgs": "--module-path C:/Java/javafx-sdk-21.0.2/lib --add-modules javafx.controls,javafx.fxml",
+            "jdkPath": "C:\\Program Files\\Eclipse Adoptium\\jdk-21.0.2.13-hotspot",
+            "cwd": "${fileDirname}",
+            "startupClass": "${fileBasenameNoExtension}",
         },
         {
             "type": "java",
-            "name": "App",
+            "name": "SnakeApp",
             "request": "launch",
-            "mainClass": "App",
+            "mainClass": "SnakeApp",
             "projectName": "SnakeFX_b880cf12",
-            "vmArgs": "--module-path \"C:\\Java\\javafx-sdk-21.0.2\\lib\" --add-modules javafx.controls,javafx.fxml"
+            "vmArgs": "--module-path C:/Java/javafx-sdk-21.0.2/lib --add-modules javafx.controls,javafx.fxml",
+            "jdkPath": "C:\\Program Files\\Eclipse Adoptium\\jdk-21.0.2.13-hotspot",
+            "cwd": "${fileDirname}",
+            "startupClass": "${fileBasenameNoExtension}",
         }
     ]
 }
+

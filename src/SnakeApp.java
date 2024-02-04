@@ -1,30 +1,42 @@
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Application;
+import javafx.geometry.Pos;
 import javafx.scene.Scene;
-import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.input.KeyCode;
-import javafx.scene.layout.StackPane;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
+import javafx.scene.shape.StrokeType;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
-import java.util.Vector;
 
 public class SnakeApp extends Application {
 
-    private Vector<Rectangle> snake = new Vector<>();
+    private static final int SQUARE_SIZE = 25;
+    private static final int GRID_SIZE = 25;
+    private static final int PLAYING_ZONE_SIZE = GRID_SIZE * SQUARE_SIZE;
+
+    private Pane root;
+    private BorderPane borderPane;
+    private Scene scene;
+    private List<Rectangle> snake;
     private Rectangle redPixel;
-    private Direction direction = Direction.RIGHT;
-    private int score = 0;
-    private Timeline timeline;
-    private StackPane root;
+    private Rectangle boundary;
+    private int snakeX;
+    private int snakeY;
+    private int score;
+    private Direction currentDirection;
+
     private Label scoreLabel;
-    private Scene scene; // Added for access in methods
 
     public static void main(String[] args) {
         launch(args);
@@ -32,145 +44,236 @@ public class SnakeApp extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-        root = new StackPane();
-        scene = new Scene(root, 600, 600);
+        primaryStage.setTitle("SnakeFX");
 
-        // Add a black square
-        Rectangle square = new Rectangle(280, 300, 20, 20);
-        square.setFill(Color.BLACK);
-        root.getChildren().add(square);
+        root = new Pane();
+        borderPane = new BorderPane();
+        scene = new Scene(borderPane, PLAYING_ZONE_SIZE, PLAYING_ZONE_SIZE + 100);
 
-        // Add a rectangle to serve as a boundary
-        Rectangle limit = new Rectangle(0, 0, 600, 600);
-        limit.setFill(Color.WHITE);
-        root.getChildren().add(limit);
+        // Initialize snake position in the middle of the grid
+        snakeX = GRID_SIZE / 2;
+        snakeY = GRID_SIZE / 2;
+        currentDirection = Direction.RIGHT; // Initial direction
 
-        // Add 4 buttons
-        Button upButton = new Button("Up");
-        Button downButton = new Button("Down");
-        Button leftButton = new Button("Left");
-        Button rightButton = new Button("Right");
-        root.getChildren().addAll(upButton, downButton, leftButton, rightButton);
+        snake = new ArrayList<>();
+        snake.add(createSnakeSegment());
+        root.getChildren().addAll(snake);
 
-        // Add event handlers for the buttons
-        upButton.setOnAction(e -> moveSnake(Direction.UP));
-        downButton.setOnAction(e -> moveSnake(Direction.DOWN));
-        leftButton.setOnAction(e -> moveSnake(Direction.LEFT));
-        rightButton.setOnAction(e -> moveSnake(Direction.RIGHT));
+        redPixel = createRedPixel();
+        root.getChildren().add(redPixel);
 
-        // Add event for arrow key presses
-        scene.setOnKeyPressed(e -> {
-            switch (e.getCode()) {
-                case UP:
-                    moveSnake(Direction.UP);
-                    break;
-                case DOWN:
-                    moveSnake(Direction.DOWN);
-                    break;
-                case LEFT:
-                    moveSnake(Direction.LEFT);
-                    break;
-                case RIGHT:
-                    moveSnake(Direction.RIGHT);
-                    break;
-            }
-        });
-
-        // Add a red pixel
-        spawnRedPixel();
-
-        // Add a label
         scoreLabel = new Label("Score: 0");
-        root.getChildren().add(scoreLabel);
+        borderPane.setTop(scoreLabel);
 
-        // Add a Timeline to move the snake
-        timeline = new Timeline(new KeyFrame(Duration.millis(100), e -> {
-            moveSnake(direction);
-            checkCollision();
-        }));
-        timeline.setCycleCount(Timeline.INDEFINITE);
-        timeline.play();
+        scene.setOnKeyPressed(event -> handleKeyPress(event.getCode()));
+
+        // WASD buttons
+        Button btnW = new Button("U");
+        btnW.setOnAction(e -> changeDirection(Direction.UP));
+
+        Button btnA = new Button("L");
+        btnA.setOnAction(e -> changeDirection(Direction.LEFT));
+
+        Button btnS = new Button("D");
+        btnS.setOnAction(e -> changeDirection(Direction.DOWN));
+
+        Button btnD = new Button("R");
+        btnD.setOnAction(e -> changeDirection(Direction.RIGHT));
+
+        // WASD layout
+        GridPane wasdGrid = new GridPane();
+        wasdGrid.add(btnW, 1, 0);
+        wasdGrid.add(btnA, 0, 1);
+        wasdGrid.add(btnS, 1, 1);
+        wasdGrid.add(btnD, 2, 1);
+        wasdGrid.setAlignment(Pos.CENTER);
+
+        // Draw boundary around the playing zone
+        boundary = new Rectangle(PLAYING_ZONE_SIZE, PLAYING_ZONE_SIZE);
+        boundary.setFill(null);
+        boundary.setStroke(Color.GREEN);
+        boundary.setStrokeWidth(2);
+        root.getChildren().add(boundary);
+
+        // Set up the layout
+        borderPane.setCenter(root);
+        borderPane.setBottom(wasdGrid);
+        BorderPane.setAlignment(wasdGrid, Pos.CENTER);
 
         primaryStage.setScene(scene);
-        primaryStage.setTitle("Snake Game");
         primaryStage.show();
+
+        spawnRedPixel();
+        startGameLoop();
     }
 
-    private void moveSnake(Direction direction) {
-        for (int i = snake.size() - 1; i > 0; i--) {
-            snake.get(i).setX(snake.get(i - 1).getX());
-            snake.get(i).setY(snake.get(i - 1).getY());
-        }
+    private Rectangle createSnakeSegment() {
+        Rectangle segment = new Rectangle(SQUARE_SIZE, SQUARE_SIZE, Color.BLACK);
+        segment.setStroke(Color.BLACK);
+        segment.setStrokeType(StrokeType.INSIDE);
+        // Set initial position in the middle
+        segment.setTranslateX(snakeX * SQUARE_SIZE);
+        segment.setTranslateY(snakeY * SQUARE_SIZE);
+        return segment;
+    }
 
-        switch (direction) {
-            case UP:
-                snake.get(0).setY(snake.get(0).getY() - 20);
-                break;
-            case DOWN:
-                snake.get(0).setY(snake.get(0).getY() + 20);
-                break;
-            case LEFT:
-                snake.get(0).setX(snake.get(0).getX() - 20);
-                break;
-            case RIGHT:
-                snake.get(0).setX(snake.get(0).getX() + 20);
-                break;
-        }
+    private Rectangle createRedPixel() {
+        Rectangle pixel = new Rectangle(SQUARE_SIZE, SQUARE_SIZE, Color.RED);
+        pixel.setStroke(Color.RED);
+        pixel.setStrokeType(StrokeType.INSIDE);
+        return pixel;
     }
 
     private void spawnRedPixel() {
-        Random rand = new Random();
-        double x, y;
-        do {
-            x = rand.nextInt((int) scene.getWidth() - 20);
-            y = rand.nextInt((int) scene.getHeight() - 20);
-        } while (isPixelOnSnake(x, y));
+        Random random = new Random();
+        int redPixelX;
+        int redPixelY;
 
-        redPixel = new Rectangle(x, y, 20, 20);
-        redPixel.setFill(Color.RED);
-        root.getChildren().add(redPixel);
+        do {
+            redPixelX = random.nextInt(GRID_SIZE);
+            redPixelY = random.nextInt(GRID_SIZE);
+        } while (isOnSnake(redPixelX, redPixelY));
+
+        redPixel.setTranslateX(redPixelX * SQUARE_SIZE);
+        redPixel.setTranslateY(redPixelY * SQUARE_SIZE);
     }
 
-    private boolean isPixelOnSnake(double x, double y) {
+    private boolean isOnSnake(int x, int y) {
         for (Rectangle segment : snake) {
-            if (segment.getX() == x && segment.getY() == y) {
+            if (x == (int) segment.getTranslateX() / SQUARE_SIZE &&
+                    y == (int) segment.getTranslateY() / SQUARE_SIZE) {
                 return true;
             }
         }
         return false;
     }
 
-    private void checkCollision() {
-        // Check if the snake has eaten the red pixel
-        if (redPixel != null && redPixel.getBoundsInParent().intersects(snake.get(0).getBoundsInParent())) {
+    private void moveSnake() {
+        int newSnakeX = snakeX;
+        int newSnakeY = snakeY;
+
+        // Move in the current direction
+        switch (currentDirection) {
+            case UP:
+                newSnakeY = Math.floorMod(snakeY - 1, GRID_SIZE);
+                break;
+            case DOWN:
+                newSnakeY = Math.floorMod(snakeY + 1, GRID_SIZE);
+                break;
+            case LEFT:
+                newSnakeX = Math.floorMod(snakeX - 1, GRID_SIZE);
+                break;
+            case RIGHT:
+                newSnakeX = Math.floorMod(snakeX + 1, GRID_SIZE);
+                break;
+        }
+
+        // Check collision with red pixel
+        if (newSnakeX == (int) redPixel.getTranslateX() / SQUARE_SIZE &&
+                newSnakeY == (int) redPixel.getTranslateY() / SQUARE_SIZE) {
+            // Snake has eaten the red pixel
             score++;
             scoreLabel.setText("Score: " + score);
-            snake.add(new Rectangle(snake.get(snake.size() - 1).getX(), snake.get(snake.size() - 1).getY(), 20, 20));
+
+            // Increase snake size
+            Rectangle newSegment = createSnakeSegment();
+            snake.add(newSegment);
+            root.getChildren().add(newSegment);
+
+            // Spawn a new red pixel
             spawnRedPixel();
         }
 
-        // Check if the snake has bitten itself
-        for (int i = 1; i < snake.size(); i++) {
-            if (snake.get(0).getBoundsInParent().intersects(snake.get(i).getBoundsInParent())) {
-                gameOver();
-            }
+        // Move each snake segment
+        for (int i = snake.size() - 1; i > 0; i--) {
+            Rectangle currentSegment = snake.get(i);
+            Rectangle nextSegment = snake.get(i - 1);
+            currentSegment.setTranslateX(nextSegment.getTranslateX());
+            currentSegment.setTranslateY(nextSegment.getTranslateY());
         }
 
-        // Check if the snake has gone out of bounds
-        if (snake.get(0).getX() < 0 || snake.get(0).getX() > scene.getWidth() - 20 ||
-                snake.get(0).getY() < 0 || snake.get(0).getY() > scene.getHeight() - 20) {
-            gameOver();
+        // Move the head of the snake
+        snake.get(0).setTranslateX(newSnakeX * SQUARE_SIZE);
+        snake.get(0).setTranslateY(newSnakeY * SQUARE_SIZE);
+
+        snakeX = newSnakeX;
+        snakeY = newSnakeY;
+
+        checkCollisionWithBoundary();
+        checkCollisionWithSelf();
+    }
+
+    private void changeDirection(Direction newDirection) {
+        // Prevent going back in the opposite direction
+        if (currentDirection != null && !isOppositeDirection(currentDirection, newDirection)) {
+            currentDirection = newDirection;
         }
     }
 
-    private void gameOver() {
-        timeline.stop();
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle("Game Over");
-        alert.setHeaderText("Your score is: " + score);
-        alert.setContentText("Press OK to exit.");
-        alert.showAndWait();
-        System.exit(0);
+    private boolean isOppositeDirection(Direction current, Direction newDirection) {
+        return (current == Direction.UP && newDirection == Direction.DOWN) ||
+               (current == Direction.DOWN && newDirection == Direction.UP) ||
+               (current == Direction.LEFT && newDirection == Direction.RIGHT) ||
+               (current == Direction.RIGHT && newDirection == Direction.LEFT);
+    }
+
+    private void checkCollisionWithBoundary() {
+        if (snakeX < 0 || snakeY < 0 || snakeX >= GRID_SIZE || snakeY >= GRID_SIZE) {
+            // Snake collided with the boundary, game over
+            resetGame();
+        }
+    }
+
+    private void checkCollisionWithSelf() {
+        for (int i = 1; i < snake.size(); i++) {
+            if (snakeX == (int) snake.get(i).getTranslateX() / SQUARE_SIZE &&
+                snakeY == (int) snake.get(i).getTranslateY() / SQUARE_SIZE) {
+                // Snake collided with itself, game over
+                resetGame();
+            }
+        }
+    }
+
+    private void resetGame() {
+        // Reset snake position and size
+        snakeX = GRID_SIZE / 2;
+        snakeY = GRID_SIZE / 2;
+        currentDirection = Direction.RIGHT;
+        snake.forEach(segment -> root.getChildren().remove(segment));
+        snake.clear();
+        snake.add(createSnakeSegment());
+        root.getChildren().addAll(snake);
+
+        // Reset score
+        score = 0;
+        scoreLabel.setText("Score: 0");
+
+        // Respawn red pixel
+        spawnRedPixel();
+    }
+
+    private void handleKeyPress(KeyCode code) {
+        switch (code) {
+            case W:
+                changeDirection(Direction.UP);
+                break;
+            case A:
+                changeDirection(Direction.LEFT);
+                break;
+            case S:
+                changeDirection(Direction.DOWN);
+                break;
+            case D:
+                changeDirection(Direction.RIGHT);
+                break;
+        }
+    }
+
+    private void startGameLoop() {
+        // Game loop to move the snake periodically
+        Timeline timeline = new Timeline(new KeyFrame(Duration.millis(150), event -> moveSnake()));
+        timeline.setCycleCount(Timeline.INDEFINITE);
+        timeline.play();
     }
 
     private enum Direction {
