@@ -1,18 +1,32 @@
-## Getting Started
+# Snake Game
 
-Welcome to the VS Code Java world. Here is a guideline to help you get started to write Java code in Visual Studio Code.
+## Overview
 
-## Folder Structure
+Snake Game is a simple implementation of the classic Snake game using JavaFX. It allows players to control a snake, eat red pixels to grow, and aims to achieve the highest score possible.
 
-The workspace contains two folders by default, where:
+## Dependencies
 
-- `src`: the folder to maintain sources
-- `lib`: the folder to maintain dependencies
+The Snake Game has the following dependencies:
 
-Meanwhile, the compiled output files will be generated in the `bin` folder by default.
+JavaFX 21.0.2: JavaFX is used for the graphical user interface.\
+JavaFX 21 is designed for java JDK 21 but might work with JDK 17 and later.\
+If compilation errors happens try to update the JDK.
 
-> If you want to customize the folder structure, open `.vscode/settings.json` and update the related settings there.
+## Installation
+Follow the steps below to run the Snake Game:
 
-## Dependency Management
+1. **Install JavaFX**\
+Ensure that you have JavaFX installed on your machine. You can download it from [here](https://gluonhq.com/products/javafx/).
 
-The `JAVA PROJECTS` view allows you to manage your dependencies. More details can be found [here](https://github.com/microsoft/vscode-java-dependency#manage-dependencies).
+2. **Download**\
+   Clone this repo or download the folders
+
+3. **Add VM arguments**\
+   This step is different depending on your IDE.\
+   Refer to the [installation guide](https://openjfx.io/openjfx-docs/).
+
+4. **Compile and Run**
+
+
+## Controls
+Use WASD or the on screen buttons with a mouse to change the direction of the snake.
